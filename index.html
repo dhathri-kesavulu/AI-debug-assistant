@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DΞBUG — AI Debug Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="scanlines"></div>
+  <div class="grid-overlay"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-bracket">[</span>
+        <span class="logo-text">DΞBUG</span>
+        <span class="logo-bracket">]</span>
+      </div>
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span class="status-label">ONLINE</span>
+      </div>
+    </div>
+    <div class="header-center">
+      <span class="header-subtitle">AI-POWERED DEBUG ASSISTANT</span>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" id="clearBtn" title="Clear conversation">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+      <div class="model-badge">claude-sonnet-4</div>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">LANGUAGE</div>
+        <select class="lang-select" id="langSelect">
+          <option value="">Auto-detect</option>
+          <option value="Python">Python</option>
+          <option value="JavaScript">JavaScript</option>
+          <option value="TypeScript">TypeScript</option>
+          <option value="Java">Java</option>
+          <option value="C++">C++</option>
+          <option value="C">C</option>
+          <option value="Rust">Rust</option>
+          <option value="Go">Go</option>
+          <option value="Ruby">Ruby</option>
+          <option value="PHP">PHP</option>
+          <option value="Swift">Swift</option>
+          <option value="Kotlin">Kotlin</option>
+          <option value="SQL">SQL</option>
+          <option value="Bash">Bash</option>
+          <option value="React">React/JSX</option>
+          <option value="Vue">Vue.js</option>
+          <option value="Django">Django</option>
+          <option value="FastAPI">FastAPI</option>
+          <option value="Node.js">Node.js</option>
+        </select>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">QUICK PROMPTS</div>
+        <div class="quick-prompts">
+          <button class="quick-btn" data-prompt="Why is this code throwing an error? Here's the stack trace:">Stack Trace</button>
+          <button class="quick-btn" data-prompt="This function isn't returning the expected output. Here's the code and what I expect vs what I get:">Wrong Output</button>
+          <button class="quick-btn" data-prompt="My code has a performance issue / is running too slow. Can you analyze and optimize it?">Performance</button>
+          <button class="quick-btn" data-prompt="I'm getting a memory leak in this code. Help me find and fix it:">Memory Leak</button>
+          <button class="quick-btn" data-prompt="Review this code for security vulnerabilities:">Security Audit</button>
+          <button class="quick-btn" data-prompt="This async/await code has a race condition or isn't resolving correctly:">Async Issue</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">SESSION STATS</div>
+        <div class="stats">
+          <div class="stat-row">
+            <span class="stat-name">Messages</span>
+            <span class="stat-value" id="msgCount">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-name">Bugs Fixed</span>
+            <span class="stat-value" id="bugCount">0</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Chat Area -->
+    <div class="chat-container">
+      <div class="messages" id="messages">
+        <!-- Welcome state -->
+        <div class="welcome" id="welcomeScreen">
+          <div class="welcome-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+          </div>
+          <h2 class="welcome-title">Ready to squash bugs.</h2>
+          <p class="welcome-sub">Paste your code, error message, or stack trace.<br>I'll find the root cause and fix it fast.</p>
+          <div class="welcome-examples">
+            <span class="example-tag" onclick="setExample('null')">NullPointerException</span>
+            <span class="example-tag" onclick="setExample('async')">Async Race Condition</span>
+            <span class="example-tag" onclick="setExample('seg')">Segfault</span>
+            <span class="example-tag" onclick="setExample('type')">TypeError</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div class="input-area">
+        <div class="input-wrapper">
+          <textarea
+            id="userInput"
+            class="user-input"
+            placeholder="Paste your code, error, or describe your bug..."
+            rows="1"
+          ></textarea>
+          <div class="input-actions">
+            <span class="char-count" id="charCount">0</span>
+            <button class="send-btn" id="sendBtn">
+              <span class="send-label">DEBUG</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="input-hint">
+          <span>Shift+Enter for new line</span>
+          <span>Enter to send</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast notifications -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
